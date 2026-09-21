@@ -15,6 +15,7 @@ import com.langtutor.domain.usecase.ExplainMessage
 import com.langtutor.domain.usecase.SaveWord
 import com.langtutor.domain.usecase.SendMessage
 import com.langtutor.domain.usecase.StartConversation
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -54,6 +55,10 @@ class ChatViewModel(
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
+    // Cancelled and restarted whenever the active profile changes, so only one message
+    // observer is ever alive at a time (avoids accumulation across language switches).
+    private var messageObserverJob: Job? = null
+
     init {
         viewModelScope.launch {
             try {
@@ -69,7 +74,8 @@ class ChatViewModel(
     }
 
     private fun observeMessages(profile: LearnerProfile) {
-        viewModelScope.launch {
+        messageObserverJob?.cancel()
+        messageObserverJob = viewModelScope.launch {
             try {
                 messageRepository.observeByProfile(profile.id).collectLatest { messages ->
                     _uiState.update { it.copy(messages = messages) }
