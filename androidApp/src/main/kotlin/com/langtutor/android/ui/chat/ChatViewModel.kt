@@ -63,7 +63,9 @@ class ChatViewModel(
         viewModelScope.launch {
             try {
                 profileRepository.observeActive().collectLatest { profile ->
-                    _uiState.update { it.copy(profile = profile) }
+                    // Reset message list and disable send immediately on any profile change
+                    // to prevent sending with a stale profile during the load window.
+                    _uiState.update { it.copy(profile = profile, messages = emptyList(), isSendEnabled = false) }
                     if (profile != null) observeMessages(profile)
                 }
             } catch (e: Exception) {
@@ -79,7 +81,11 @@ class ChatViewModel(
             try {
                 messageRepository.observeByProfile(profile.id).collectLatest { messages ->
                     _uiState.update { it.copy(messages = messages) }
-                    if (messages.isEmpty()) kickOff(profile)
+                    if (messages.isEmpty()) {
+                        kickOff(profile)  // kickOff re-enables send after the API call
+                    } else {
+                        _uiState.update { it.copy(isSendEnabled = true) }
+                    }
                 }
             } catch (e: Exception) {
                 logError("MessageObserver", e)
