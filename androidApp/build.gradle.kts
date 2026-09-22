@@ -12,8 +12,8 @@ android {
         applicationId = "com.langtutor.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "2.0"
     }
 
     buildTypes {
@@ -56,4 +56,5 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.work.runtime.ktx)
 }

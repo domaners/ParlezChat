@@ -17,6 +17,7 @@ import com.langtutor.domain.repository.ProfileRepository
 import com.langtutor.domain.repository.SettingsRepository
 import com.langtutor.domain.repository.VocabRepository
 import com.langtutor.domain.usecase.ExplainMessage
+import com.langtutor.domain.usecase.GenerateEngagementMessage
 import com.langtutor.domain.usecase.SaveWord
 import com.langtutor.domain.usecase.SendMessage
 import com.langtutor.domain.usecase.StartConversation
@@ -45,4 +46,5 @@ val commonModule = module {
     factory { SendMessage(get(), get(), get()) }
     factory { ExplainMessage(get(), get(), get()) }
     factory { SaveWord(get(), get(), get()) }
+    factory { GenerateEngagementMessage(get(), get(), get()) }
 }

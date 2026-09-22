@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.langtutor.domain.model.ChatMessage
@@ -155,6 +156,16 @@ fun ChatScreen(
 private val MSG_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
     .withZone(ZoneId.systemDefault())
 
+/** Splits a bot message into (mainText, translation) if a `---` separator line is present. */
+private fun splitTranslation(content: String): Pair<String, String?> {
+    val lines = content.lines()
+    val sepIndex = lines.indexOfFirst { it.trim() == "---" }
+    if (sepIndex < 0) return Pair(content, null)
+    val main = lines.take(sepIndex).joinToString("\n").trim()
+    val translation = lines.drop(sepIndex + 1).joinToString("\n").trim()
+    return Pair(main, translation.ifEmpty { null })
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
@@ -171,6 +182,11 @@ private fun MessageBubble(
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
         Column(horizontalAlignment = if (isUser) Alignment.End else Alignment.Start) {
+            val (mainText, translation) = remember(message.content) {
+                splitTranslation(message.content)
+            }
+            val bubbleContentColor = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer
+                                     else MaterialTheme.colorScheme.onSurfaceVariant
             Surface(
                 color = if (isUser) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surfaceVariant,
@@ -181,12 +197,20 @@ private fun MessageBubble(
                     .combinedClickable(onLongClick = onLongPress, onClick = {}),
             ) {
                 SelectionContainer {
-                    Text(
-                        text = message.content,
-                        color = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                    )
+                    Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+                        Text(
+                            text = mainText,
+                            color = bubbleContentColor,
+                        )
+                        if (translation != null) {
+                            Text(
+                                text = translation,
+                                style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                                color = bubbleContentColor.copy(alpha = 0.75f),
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                    }
                 }
             }
             Text(
