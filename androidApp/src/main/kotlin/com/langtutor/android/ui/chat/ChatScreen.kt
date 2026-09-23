@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.langtutor.android.BuildConfig
 import com.langtutor.domain.model.ChatMessage
 import com.langtutor.domain.model.DeliveryStatus
 import com.langtutor.domain.model.Role
@@ -44,7 +45,7 @@ fun ChatScreen(
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(modifier = Modifier.fillMaxHeight()) {
                 Spacer(Modifier.height(16.dp))
                 Text("LangTutor", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
                 HorizontalDivider()
@@ -67,6 +68,15 @@ fun ChatScreen(
                     label = { Text("Error log") },
                     selected = false,
                     onClick = { scope.launch { drawerState.close() }; onNavigateToErrorLog() },
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = "v${BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .fillMaxWidth(),
                 )
             }
         },
