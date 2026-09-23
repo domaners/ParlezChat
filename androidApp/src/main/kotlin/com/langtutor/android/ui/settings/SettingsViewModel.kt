@@ -2,6 +2,7 @@ package com.langtutor.android.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.langtutor.android.worker.ReminderWorker
 import com.langtutor.data.remote.ClaudeClient
 import com.langtutor.data.security.ApiKeyStore
 import com.langtutor.domain.model.LearnerProfile
@@ -17,6 +18,7 @@ data class SettingsUiState(
     val apiKeyMasked: String = "",
     val hasApiKey: Boolean = false,
     val modelOverride: String = "",
+    val inactivityHours: Int = ReminderWorker.DEFAULT_INACTIVITY_HOURS.toInt(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
@@ -37,12 +39,15 @@ class SettingsViewModel(
             profileRepository.observeActive().collectLatest { profile ->
                 val key = apiKeyStore.get()
                 val model = settingsRepository.get("model") ?: ""
+                val inactivityHours = settingsRepository.get(ReminderWorker.KEY_INACTIVITY_HOURS)
+                    ?.toIntOrNull() ?: ReminderWorker.DEFAULT_INACTIVITY_HOURS.toInt()
                 _uiState.update {
                     it.copy(
                         profile = profile,
                         hasApiKey = key != null,
                         apiKeyMasked = key?.maskKey() ?: "",
                         modelOverride = model,
+                        inactivityHours = inactivityHours,
                     )
                 }
             }
@@ -92,6 +97,14 @@ class SettingsViewModel(
         viewModelScope.launch {
             if (model.isBlank()) settingsRepository.delete("model") else settingsRepository.set("model", model)
             _uiState.update { it.copy(modelOverride = model) }
+        }
+    }
+
+    fun setInactivityHours(hours: Int) {
+        val clamped = hours.coerceIn(1, 168)
+        viewModelScope.launch {
+            settingsRepository.set(ReminderWorker.KEY_INACTIVITY_HOURS, clamped.toString())
+            _uiState.update { it.copy(inactivityHours = clamped) }
         }
     }
 

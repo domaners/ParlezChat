@@ -2,12 +2,16 @@ package com.langtutor.android.ui.settings
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.langtutor.domain.model.ProficiencyLevel
@@ -137,11 +141,24 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
-            // Advanced: model override
+            // Advanced: model override + notification threshold
             Text("Advanced", style = MaterialTheme.typography.titleMedium)
             ModelDropdown(
                 selected = state.modelOverride,
                 onSelected = { viewModel.setModelOverride(it) },
+            )
+            var hoursText by remember(state.inactivityHours) { mutableStateOf(state.inactivityHours.toString()) }
+            OutlinedTextField(
+                value = hoursText,
+                onValueChange = { hoursText = it.filter { c -> c.isDigit() }.take(3) },
+                label = { Text("Re-engagement notification after (hours)") },
+                supportingText = { Text("1–168 hours. Saves on Done.") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = {
+                    hoursText.toIntOrNull()?.let { viewModel.setInactivityHours(it) }
+                }),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(Modifier.height(32.dp))

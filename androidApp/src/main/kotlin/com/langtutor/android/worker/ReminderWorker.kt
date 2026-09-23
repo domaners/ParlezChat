@@ -30,11 +30,14 @@ class ReminderWorker(
                 ?: return Result.success()  // no conversation started yet
 
             val now = System.currentTimeMillis()
-            if (now - lastMessage.createdAt < INACTIVITY_THRESHOLD_MS) return Result.success()
+            val thresholdHours = settingsRepository.get(KEY_INACTIVITY_HOURS)?.toLongOrNull()
+                ?: DEFAULT_INACTIVITY_HOURS
+            val thresholdMs = thresholdHours * 60 * 60 * 1000L
+            if (now - lastMessage.createdAt < thresholdMs) return Result.success()
 
             // Limit re-engagement frequency so we don't spam if the user keeps ignoring
             val lastReengagement = settingsRepository.get(KEY_LAST_REENGAGEMENT)?.toLongOrNull() ?: 0L
-            if (now - lastReengagement < MIN_REENGAGEMENT_INTERVAL_MS) return Result.success()
+            if (now - lastReengagement < thresholdMs * 2) return Result.success()
 
             generateEngagementMessage(profile).fold(
                 onSuccess = { message ->
@@ -55,11 +58,8 @@ class ReminderWorker(
     }
 
     companion object {
-        /** How long the user must be inactive before we send a re-engagement message. */
-        private const val INACTIVITY_THRESHOLD_MS = 24 * 60 * 60 * 1000L  // 24 hours
-
-        /** Minimum gap between two re-engagement messages to avoid spamming ignored chats. */
-        private const val MIN_REENGAGEMENT_INTERVAL_MS = 48 * 60 * 60 * 1000L  // 48 hours
+        const val KEY_INACTIVITY_HOURS = "reengagement_hours"
+        const val DEFAULT_INACTIVITY_HOURS = 24L
 
         private const val KEY_LAST_REENGAGEMENT = "last_reengagement_at"
 
