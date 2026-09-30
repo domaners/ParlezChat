@@ -10,4 +10,6 @@ data class VocabEntry(
     val exampleNative: String,
     val sourceMessageId: Long?,         // message it was saved from, if still present
     val createdAt: Long,
+    val correctCount: Int = 0,
+    val incorrectCount: Int = 0,
 )

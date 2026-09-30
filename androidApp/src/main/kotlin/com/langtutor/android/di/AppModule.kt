@@ -6,6 +6,7 @@ import com.langtutor.android.ui.dictionary.DictionaryViewModel
 import com.langtutor.android.ui.errorlog.ErrorLogViewModel
 import com.langtutor.android.ui.onboarding.OnboardingViewModel
 import com.langtutor.android.ui.settings.SettingsViewModel
+import com.langtutor.android.ui.wordreview.WordReviewViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -51,6 +52,12 @@ val appModule = module {
     viewModel {
         ErrorLogViewModel(
             errorLogRepository = get(),
+        )
+    }
+    viewModel {
+        WordReviewViewModel(
+            profileRepository = get(),
+            vocabRepository = get(),
         )
     }
 }

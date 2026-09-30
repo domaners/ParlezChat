@@ -16,7 +16,9 @@ import com.langtutor.android.MainActivity
 object NotificationHelper {
 
     const val CHANNEL_ID = "langtutor_messages"
-    private const val NOTIFICATION_ID = 1001
+    const val EXTRA_SHOW_REVIEW = "show_review"
+    private const val NOTIFICATION_ID_REENGAGEMENT = 1001
+    private const val NOTIFICATION_ID_REVIEW = 1002
 
     fun createNotificationChannel(context: Context) {
         val channel = NotificationChannel(
@@ -24,9 +26,35 @@ object NotificationHelper {
             "New messages",
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
-            description = "Re-engagement messages from your language tutor"
+            description = "Re-engagement messages and word review reminders"
         }
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+    }
+
+    fun showWordReviewNotification(context: Context, term: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+        ) return
+
+        val tapIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra(EXTRA_SHOW_REVIEW, true)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, NOTIFICATION_ID_REVIEW, tapIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("Time to review a word!")
+            .setContentText("Do you remember what \"$term\" means?")
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_REVIEW, notification)
     }
 
     fun showReEngagementNotification(context: Context, languageName: String, messageText: String) {
@@ -55,6 +83,6 @@ object NotificationHelper {
             .setAutoCancel(true)
             .build()
 
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_REENGAGEMENT, notification)
     }
 }

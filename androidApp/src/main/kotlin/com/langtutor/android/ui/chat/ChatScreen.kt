@@ -36,6 +36,7 @@ fun ChatScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToChangeLanguage: () -> Unit,
     onNavigateToErrorLog: () -> Unit,
+    onNavigateToWordReview: () -> Unit,
     viewModel: ChatViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -63,6 +64,11 @@ fun ChatScreen(
                     label = { Text("Change language") },
                     selected = false,
                     onClick = { scope.launch { drawerState.close() }; onNavigateToChangeLanguage() },
+                )
+                NavigationDrawerItem(
+                    label = { Text("Word review") },
+                    selected = false,
+                    onClick = { scope.launch { drawerState.close() }; onNavigateToWordReview() },
                 )
                 NavigationDrawerItem(
                     label = { Text("Error log") },

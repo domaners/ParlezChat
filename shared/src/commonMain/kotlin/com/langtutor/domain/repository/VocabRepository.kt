@@ -17,4 +17,8 @@ interface VocabRepository {
     ): VocabEntry
     suspend fun delete(id: Long)
     suspend fun search(profileId: Long, query: String): List<VocabEntry>
+    suspend fun countByProfile(profileId: Long): Long
+    suspend fun getRandomForReview(profileId: Long): VocabEntry?
+    suspend fun getRandomDefinitions(profileId: Long, excludeId: Long, limit: Long): List<String>
+    suspend fun recordAttempt(id: Long, correct: Boolean)
 }

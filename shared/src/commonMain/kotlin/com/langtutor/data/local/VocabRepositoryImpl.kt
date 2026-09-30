@@ -56,6 +56,23 @@ class VocabRepositoryImpl(private val db: LangTutorDatabase) : VocabRepository {
         queries.searchByProfile(profileId, query).executeAsList().map { it.toDomain() }
     }
 
+    override suspend fun countByProfile(profileId: Long): Long = withContext(Dispatchers.IO) {
+        queries.countByProfile(profileId).executeAsOne()
+    }
+
+    override suspend fun getRandomForReview(profileId: Long): VocabEntry? = withContext(Dispatchers.IO) {
+        queries.selectRandomForReview(profileId).executeAsOneOrNull()?.toDomain()
+    }
+
+    override suspend fun getRandomDefinitions(profileId: Long, excludeId: Long, limit: Long): List<String> =
+        withContext(Dispatchers.IO) {
+            queries.selectRandomDefinitions(profileId, excludeId, limit).executeAsList()
+        }
+
+    override suspend fun recordAttempt(id: Long, correct: Boolean) = withContext(Dispatchers.IO) {
+        if (correct) queries.incrementCorrect(id) else queries.incrementIncorrect(id)
+    }
+
     private fun Vocab_entry.toDomain() = VocabEntry(
         id = id,
         profileId = profile_id,
@@ -66,5 +83,7 @@ class VocabRepositoryImpl(private val db: LangTutorDatabase) : VocabRepository {
         exampleNative = example_native,
         sourceMessageId = source_message_id,
         createdAt = created_at,
+        correctCount = correct_count.toInt(),
+        incorrectCount = incorrect_count.toInt(),
     )
 }

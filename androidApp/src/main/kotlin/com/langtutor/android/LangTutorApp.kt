@@ -9,6 +9,7 @@ import androidx.work.WorkManager
 import com.langtutor.android.di.appModule
 import com.langtutor.android.notification.NotificationHelper
 import com.langtutor.android.worker.ReminderWorker
+import com.langtutor.android.worker.WordReviewWorker
 import com.langtutor.di.androidModule
 import com.langtutor.di.commonModule
 import org.koin.android.ext.koin.androidContext
@@ -27,6 +28,16 @@ class LangTutorApp : Application() {
         }
         NotificationHelper.createNotificationChannel(this)
         scheduleReEngagementWorker()
+        scheduleWordReviewWorker()
+    }
+
+    private fun scheduleWordReviewWorker() {
+        val request = PeriodicWorkRequestBuilder<WordReviewWorker>(8, TimeUnit.HOURS).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            WordReviewWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request,
+        )
     }
 
     private fun scheduleReEngagementWorker() {

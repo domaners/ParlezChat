@@ -15,6 +15,7 @@ import com.langtutor.android.ui.dictionary.DictionaryScreen
 import com.langtutor.android.ui.errorlog.ErrorLogScreen
 import com.langtutor.android.ui.onboarding.OnboardingScreen
 import com.langtutor.android.ui.settings.SettingsScreen
+import com.langtutor.android.ui.wordreview.WordReviewScreen
 import com.langtutor.domain.repository.SettingsRepository
 import org.koin.compose.koinInject
 
@@ -24,10 +25,11 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object ChangeLanguage : Screen("change_language")
     object ErrorLog : Screen("error_log")
+    object WordReview : Screen("word_review")
 }
 
 @Composable
-fun LangTutorNavHost() {
+fun LangTutorNavHost(startAtReview: Boolean = false) {
     val settingsRepository = koinInject<SettingsRepository>()
     var onboardingComplete by remember { mutableStateOf<Boolean?>(null) }
 
@@ -46,6 +48,9 @@ fun LangTutorNavHost() {
     }
 
     val navController = rememberNavController()
+    LaunchedEffect(startAtReview) {
+        if (startAtReview) navController.navigate(Screen.WordReview.route)
+    }
     NavHost(navController = navController, startDestination = Screen.Chat.route) {
         composable(Screen.Chat.route) {
             ChatScreen(
@@ -53,6 +58,7 @@ fun LangTutorNavHost() {
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToChangeLanguage = { navController.navigate(Screen.ChangeLanguage.route) },
                 onNavigateToErrorLog = { navController.navigate(Screen.ErrorLog.route) },
+                onNavigateToWordReview = { navController.navigate(Screen.WordReview.route) },
             )
         }
         composable(Screen.Dictionary.route) {
@@ -72,6 +78,9 @@ fun LangTutorNavHost() {
         }
         composable(Screen.ErrorLog.route) {
             ErrorLogScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.WordReview.route) {
+            WordReviewScreen(onBack = { navController.popBackStack() })
         }
     }
 }
