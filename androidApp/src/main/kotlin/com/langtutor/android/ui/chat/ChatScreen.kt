@@ -16,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -145,6 +146,11 @@ fun ChatScreen(
                     isSavingWord = state.isSavingWord,
                     onSend = viewModel::send,
                     onSaveWord = viewModel::saveWordFromInput,
+                    onInputFocused = {
+                        if (state.messages.isNotEmpty()) {
+                            scope.launch { listState.animateScrollToItem(state.messages.lastIndex) }
+                        }
+                    },
                 )
             }
         }
@@ -271,6 +277,7 @@ private fun MessageInput(
     isSavingWord: Boolean,
     onSend: (String) -> Unit,
     onSaveWord: (String) -> Unit,
+    onInputFocused: () -> Unit = {},
 ) {
     var text by remember { mutableStateOf("") }
     Row(
@@ -283,7 +290,9 @@ private fun MessageInput(
             value = text,
             onValueChange = { text = it },
             placeholder = { Text("Message…") },
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .onFocusChanged { focusState -> if (focusState.isFocused) onInputFocused() },
             maxLines = 4,
             enabled = enabled,
         )
