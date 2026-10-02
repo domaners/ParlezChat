@@ -4,6 +4,7 @@ import com.langtutor.android.ui.changelanguage.ChangeLanguageViewModel
 import com.langtutor.android.ui.chat.ChatViewModel
 import com.langtutor.android.ui.dictionary.DictionaryViewModel
 import com.langtutor.android.ui.errorlog.ErrorLogViewModel
+import com.langtutor.android.ui.memory.MemoryViewModel
 import com.langtutor.android.ui.onboarding.OnboardingViewModel
 import com.langtutor.android.ui.settings.SettingsViewModel
 import com.langtutor.android.ui.wordreview.WordReviewViewModel
@@ -58,6 +59,12 @@ val appModule = module {
         WordReviewViewModel(
             profileRepository = get(),
             vocabRepository = get(),
+        )
+    }
+    viewModel {
+        MemoryViewModel(
+            profileRepository = get(),
+            memoryRepository = get(),
         )
     }
 }

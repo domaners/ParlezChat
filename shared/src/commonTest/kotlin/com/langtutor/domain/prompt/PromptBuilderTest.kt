@@ -57,4 +57,24 @@ class PromptBuilderTest {
         val instruction = PromptBuilder.kickOffUserInstruction()
         assert(instruction.isNotBlank())
     }
+
+    @Test
+    fun `chat system prompt includes memory notes when present`() {
+        val prompt = PromptBuilder.chatSystemPrompt(profile, memoryNotes = listOf("User has a cat named Luna"))
+        assertContains(prompt, "User has a cat named Luna")
+    }
+
+    @Test
+    fun `chat system prompt falls back when no memory notes`() {
+        val prompt = PromptBuilder.chatSystemPrompt(profile, memoryNotes = emptyList())
+        assertContains(prompt, "don't have any saved memories")
+    }
+
+    @Test
+    fun `chat system prompt only mentions the memory tool when available`() {
+        val withTool = PromptBuilder.chatSystemPrompt(profile, memoryToolAvailable = true)
+        val withoutTool = PromptBuilder.chatSystemPrompt(profile, memoryToolAvailable = false)
+        assertContains(withTool, PromptBuilder.MEMORY_TOOL_NAME)
+        assert(!withoutTool.contains(PromptBuilder.MEMORY_TOOL_NAME))
+    }
 }

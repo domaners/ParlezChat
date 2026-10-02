@@ -1,9 +1,11 @@
 package com.langtutor.domain.prompt
 
+import com.langtutor.data.remote.dto.ToolDto
 import com.langtutor.domain.model.LearnerProfile
 import com.langtutor.domain.model.ProficiencyLevel
 import com.langtutor.domain.model.StudyDuration
 import com.langtutor.domain.model.displayName
+import kotlinx.serialization.json.Json
 
 /**
  * Renders system prompts and the kick-off instruction for every call type.
@@ -11,7 +13,13 @@ import com.langtutor.domain.model.displayName
  */
 object PromptBuilder {
 
-    fun chatSystemPrompt(profile: LearnerProfile): String {
+    const val MEMORY_TOOL_NAME = "submit_memory_notes"
+
+    fun chatSystemPrompt(
+        profile: LearnerProfile,
+        memoryNotes: List<String> = emptyList(),
+        memoryToolAvailable: Boolean = false,
+    ): String {
         val level = profile.level.displayName()
         val duration = profile.studyDuration.displayName()
         val interests = if (profile.interests.isEmpty()) "general topics" else profile.interests.joinToString(", ")
@@ -21,17 +29,54 @@ object PromptBuilder {
         } else {
             "- Reply ONLY in ${profile.targetLanguage}, even if the user writes in ${profile.nativeLanguage}. Never include translations or explanations unless the user's message is impossible to answer otherwise."
         }
+        val memorySection = if (memoryNotes.isEmpty()) {
+            "You don't have any saved memories about this learner yet."
+        } else {
+            "What you remember about this learner from earlier conversations:\n" +
+                memoryNotes.joinToString("\n") { "- $it" }
+        }
+        val memoryToolRule = if (memoryToolAvailable) {
+            "\n- If the user shares something durable worth remembering for future conversations (their job, a trip, a hobby, an ongoing situation, a preference), call the $MEMORY_TOOL_NAME tool with one short standalone note per fact, written in ${profile.nativeLanguage}. Do this in addition to your reply, never instead of it. Skip it for small talk or facts already listed above."
+        } else {
+            ""
+        }
         return """
             You are a friendly conversation partner helping the user practise ${profile.targetLanguage}. The user's native language is ${profile.nativeLanguage}.
             Their level is $level (studied for $duration). Their interests include: $interests.
+
+            $memorySection
 
             Rules:
             $translationRule
             - Keep vocabulary and grammar suited to $level. Use short messages (1–3 sentences) like a text-message chat.
             - Steer the conversation toward the user's interests. Ask one simple follow-up question at a time.
-            - If the user makes a spelling mistake or a grammar error that a $level learner would reasonably be expected to avoid, gently correct it within your reply (e.g. naturally echo the corrected form). Do not flag errors that are beyond what a $level learner is expected to know. Never break character or turn the reply into a grammar lecture.
+            - If the user makes a spelling mistake or a grammar error that a $level learner would reasonably be expected to avoid, gently correct it within your reply (e.g. naturally echo the corrected form). Do not flag errors that are beyond what a $level learner is expected to know. Never break character or turn the reply into a grammar lecture.$memoryToolRule
         """.trimIndent()
     }
+
+    /** Optional tool the model may call during a normal chat turn to record durable facts about the learner. */
+    fun memoryTool() = ToolDto(
+        name = MEMORY_TOOL_NAME,
+        description = "Record short, durable facts worth remembering about the learner for future conversations.",
+        inputSchema = Json.parseToJsonElement(
+            """
+            {
+              "type": "object",
+              "properties": {
+                "notes": {
+                  "type": "array",
+                  "maxItems": 2,
+                  "items": {
+                    "type": "string",
+                    "description": "A short standalone fact worth remembering, written in the learner's native language"
+                  }
+                }
+              },
+              "required": ["notes"]
+            }
+            """.trimIndent()
+        ),
+    )
 
     fun explanationSystemPrompt(profile: LearnerProfile): String =
         "Explain the given ${profile.targetLanguage} message in ${profile.nativeLanguage}. " +

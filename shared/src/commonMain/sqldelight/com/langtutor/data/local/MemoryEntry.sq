@@ -1,0 +1,24 @@
+CREATE TABLE memory_entry (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id INTEGER NOT NULL REFERENCES learner_profile(id) ON DELETE CASCADE,
+    content    TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+CREATE INDEX memory_entry_profile_created ON memory_entry (profile_id, created_at);
+
+selectByProfile:
+SELECT * FROM memory_entry WHERE profile_id = ? ORDER BY created_at ASC;
+
+insert:
+INSERT INTO memory_entry (profile_id, content, created_at, updated_at)
+VALUES (?, ?, ?, ?);
+
+updateContent:
+UPDATE memory_entry SET content = ?, updated_at = ? WHERE id = ?;
+
+delete:
+DELETE FROM memory_entry WHERE id = ?;
+
+lastInsertRowId:
+SELECT last_insert_rowid();

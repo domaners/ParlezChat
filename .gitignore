@@ -16,9 +16,6 @@ local.properties
 *.ipr
 *.iws
 
-# SQLDelight generated sources
-**/sqldelight/
-
 # OS
 .DS_Store
 Thumbs.db

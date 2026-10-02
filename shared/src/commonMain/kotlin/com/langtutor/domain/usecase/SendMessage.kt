@@ -2,24 +2,32 @@ package com.langtutor.domain.usecase
 
 import com.langtutor.data.remote.ClaudeClient
 import com.langtutor.data.remote.dto.ClaudeRequest
+import com.langtutor.data.remote.dto.ClaudeResponse
 import com.langtutor.data.remote.dto.MessageDto
+import com.langtutor.data.remote.dto.ToolChoiceDto
 import com.langtutor.domain.model.ChatMessage
 import com.langtutor.domain.model.DeliveryStatus
 import com.langtutor.domain.model.LearnerProfile
 import com.langtutor.domain.model.Role
 import com.langtutor.domain.prompt.PromptBuilder
+import com.langtutor.domain.repository.MemoryRepository
 import com.langtutor.domain.repository.MessageRepository
 import com.langtutor.domain.repository.SettingsRepository
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class SendMessage(
     private val messageRepository: MessageRepository,
     private val claudeClient: ClaudeClient,
     private val settingsRepository: SettingsRepository,
+    private val memoryRepository: MemoryRepository,
 ) {
     companion object {
         private const val DEFAULT_MODEL = "claude-sonnet-4-6"
-        private const val MAX_TOKENS_CHAT = 400
+        private const val MAX_TOKENS_CHAT = 500
         private const val HISTORY_WINDOW = 20L
+        private const val MEMORY_PROMPT_LIMIT = 40
     }
 
     suspend operator fun invoke(profile: LearnerProfile, text: String): Result<ChatMessage> {
@@ -51,16 +59,26 @@ class SendMessage(
             }
 
             val model = settingsRepository.get("model")?.takeIf { it.isNotBlank() } ?: DEFAULT_MODEL
+            val memoryNotes = memoryRepository.getByProfile(profile.id).map { it.content }.takeLast(MEMORY_PROMPT_LIMIT)
             val request = ClaudeRequest(
                 model = model,
                 maxTokens = MAX_TOKENS_CHAT,
-                system = PromptBuilder.chatSystemPrompt(profile),
+                system = PromptBuilder.chatSystemPrompt(profile, memoryNotes, memoryToolAvailable = true),
                 messages = apiMessages,
+                tools = listOf(PromptBuilder.memoryTool()),
+                toolChoice = ToolChoiceDto(type = "auto"),
             )
 
             claudeClient.send(request).fold(
                 onSuccess = { response ->
-                    val replyText = response.content.firstOrNull { it.type == "text" }?.text.orEmpty()
+                    saveMemoryNotes(response, profile.id)
+                    var replyText = response.content.filter { it.type == "text" }
+                        .joinToString("\n") { it.text.orEmpty() }
+                    if (replyText.isBlank()) {
+                        // Model only emitted a tool_use block — retry once without tools to force a text reply.
+                        replyText = claudeClient.send(request.copy(tools = null, toolChoice = null))
+                            .getOrNull()?.content?.firstOrNull { it.type == "text" }?.text.orEmpty()
+                    }
                     runCatching { messageRepository.updateStatus(userMsg.id, DeliveryStatus.SENT) }
                     val assistantMsg = messageRepository.insert(profile.id, Role.ASSISTANT, replyText, DeliveryStatus.SENT)
                     Result.success(assistantMsg)
@@ -73,6 +91,17 @@ class SendMessage(
         } catch (e: Exception) {
             runCatching { messageRepository.updateStatus(userMsg.id, DeliveryStatus.FAILED) }
             Result.failure(e)
+        }
+    }
+
+    private suspend fun saveMemoryNotes(response: ClaudeResponse, profileId: Long) {
+        val toolUse = response.content.firstOrNull { it.type == "tool_use" && it.name == PromptBuilder.MEMORY_TOOL_NAME }
+            ?: return
+        val notes = runCatching {
+            toolUse.input?.jsonObject?.get("notes")?.jsonArray?.map { it.jsonPrimitive.content }
+        }.getOrNull().orEmpty()
+        notes.filter { it.isNotBlank() }.forEach { note ->
+            runCatching { memoryRepository.add(profileId, note.trim().take(300)) }
         }
     }
 

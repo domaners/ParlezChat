@@ -1,0 +1,12 @@
+CREATE TABLE explanation (
+    message_id    INTEGER PRIMARY KEY REFERENCES message(id) ON DELETE CASCADE,
+    translation   TEXT NOT NULL,
+    grammar_notes TEXT NOT NULL,    -- JSON array of {theme, note}
+    created_at    INTEGER NOT NULL
+);
+
+selectByMessageId:
+SELECT * FROM explanation WHERE message_id = ?;
+
+insert:
+INSERT OR REPLACE INTO explanation (message_id, translation, grammar_notes, created_at) VALUES (?, ?, ?, ?);

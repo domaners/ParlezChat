@@ -8,6 +8,7 @@ import com.langtutor.domain.model.DeliveryStatus
 import com.langtutor.domain.model.LearnerProfile
 import com.langtutor.domain.model.Role
 import com.langtutor.domain.prompt.PromptBuilder
+import com.langtutor.domain.repository.MemoryRepository
 import com.langtutor.domain.repository.MessageRepository
 import com.langtutor.domain.repository.SettingsRepository
 
@@ -15,11 +16,13 @@ class GenerateEngagementMessage(
     private val messageRepository: MessageRepository,
     private val claudeClient: ClaudeClient,
     private val settingsRepository: SettingsRepository,
+    private val memoryRepository: MemoryRepository,
 ) {
     companion object {
         private const val DEFAULT_MODEL = "claude-sonnet-4-6"
         private const val MAX_TOKENS = 400
         private const val HISTORY_WINDOW = 10L
+        private const val MEMORY_PROMPT_LIMIT = 40
     }
 
     suspend operator fun invoke(profile: LearnerProfile): Result<ChatMessage> {
@@ -38,10 +41,11 @@ class GenerateEngagementMessage(
         // Append the hidden re-engagement trigger — never persisted
         val apiMessages = withKickOff + MessageDto("user", PromptBuilder.reEngagementInstruction())
 
+        val memoryNotes = memoryRepository.getByProfile(profile.id).map { it.content }.takeLast(MEMORY_PROMPT_LIMIT)
         val request = ClaudeRequest(
             model = model,
             maxTokens = MAX_TOKENS,
-            system = PromptBuilder.chatSystemPrompt(profile),
+            system = PromptBuilder.chatSystemPrompt(profile, memoryNotes),
             messages = apiMessages,
         )
         return claudeClient.send(request).map { response ->

@@ -21,6 +21,7 @@ class RepositoryTest {
     private lateinit var messageRepo: MessageRepositoryImpl
     private lateinit var vocabRepo: VocabRepositoryImpl
     private lateinit var explanationRepo: ExplanationRepositoryImpl
+    private lateinit var memoryRepo: MemoryRepositoryImpl
 
     @BeforeTest
     fun setUp() {
@@ -32,6 +33,7 @@ class RepositoryTest {
         messageRepo = MessageRepositoryImpl(db)
         vocabRepo = VocabRepositoryImpl(db)
         explanationRepo = ExplanationRepositoryImpl(db)
+        memoryRepo = MemoryRepositoryImpl(db)
     }
 
     @Test
@@ -111,5 +113,25 @@ class RepositoryTest {
         val window = messageRepo.getHistoryWindow(profile.id, 20)
         assertEquals(1, window.size)
         assertEquals("Bonjour", window[0].content)
+    }
+
+    @Test
+    fun `memory entries can be added, updated, deleted and are scoped per profile`() = runTest {
+        val p1 = profileRepo.create("English", "Spanish", emptyList(), ProficiencyLevel.B1, StudyDuration.SIX_TO_12_MONTHS)
+        val p2 = profileRepo.create("English", "Japanese", emptyList(), ProficiencyLevel.A1, StudyDuration.UNDER_1_MONTH)
+
+        val entry = memoryRepo.add(p1.id, "User has a cat named Luna")
+        memoryRepo.add(p2.id, "User is a nurse")
+
+        val p1Entries = memoryRepo.getByProfile(p1.id)
+        assertEquals(1, p1Entries.size)
+        assertEquals("User has a cat named Luna", p1Entries[0].content)
+
+        memoryRepo.update(entry.id, "User has a cat named Luna who is 3 years old")
+        assertEquals("User has a cat named Luna who is 3 years old", memoryRepo.getByProfile(p1.id)[0].content)
+
+        memoryRepo.delete(entry.id)
+        assertTrue(memoryRepo.getByProfile(p1.id).isEmpty())
+        assertEquals(1, memoryRepo.getByProfile(p2.id).size)
     }
 }

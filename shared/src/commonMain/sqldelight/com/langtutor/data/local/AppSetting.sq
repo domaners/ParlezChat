@@ -1,0 +1,14 @@
+-- Keys used: onboarding_complete ("true"), model (Claude model ID override)
+CREATE TABLE app_setting (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+select:
+SELECT value FROM app_setting WHERE key = ?;
+
+upsert:
+INSERT OR REPLACE INTO app_setting (key, value) VALUES (?, ?);
+
+delete:
+DELETE FROM app_setting WHERE key = ?;

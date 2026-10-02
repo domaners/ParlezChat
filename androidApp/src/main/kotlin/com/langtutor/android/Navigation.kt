@@ -13,6 +13,7 @@ import com.langtutor.android.ui.changelanguage.ChangeLanguageScreen
 import com.langtutor.android.ui.chat.ChatScreen
 import com.langtutor.android.ui.dictionary.DictionaryScreen
 import com.langtutor.android.ui.errorlog.ErrorLogScreen
+import com.langtutor.android.ui.memory.MemoryScreen
 import com.langtutor.android.ui.onboarding.OnboardingScreen
 import com.langtutor.android.ui.settings.SettingsScreen
 import com.langtutor.android.ui.wordreview.WordReviewScreen
@@ -26,6 +27,7 @@ sealed class Screen(val route: String) {
     object ChangeLanguage : Screen("change_language")
     object ErrorLog : Screen("error_log")
     object WordReview : Screen("word_review")
+    object ConversationMemory : Screen("conversation_memory")
 }
 
 @Composable
@@ -59,6 +61,7 @@ fun LangTutorNavHost(startAtReview: Boolean = false) {
                 onNavigateToChangeLanguage = { navController.navigate(Screen.ChangeLanguage.route) },
                 onNavigateToErrorLog = { navController.navigate(Screen.ErrorLog.route) },
                 onNavigateToWordReview = { navController.navigate(Screen.WordReview.route) },
+                onNavigateToConversationMemory = { navController.navigate(Screen.ConversationMemory.route) },
             )
         }
         composable(Screen.Dictionary.route) {
@@ -81,6 +84,9 @@ fun LangTutorNavHost(startAtReview: Boolean = false) {
         }
         composable(Screen.WordReview.route) {
             WordReviewScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.ConversationMemory.route) {
+            MemoryScreen(onBack = { navController.popBackStack() })
         }
     }
 }

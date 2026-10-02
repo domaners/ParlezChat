@@ -18,10 +18,13 @@ class FakeClaudeClient : ClaudeClient {
     var validateResult: Result<Unit> = Result.success(Unit)
     var callCount = 0
 
+    /** Optional sequence of per-call results, consumed in order before falling back to [nextResult]. */
+    val resultsQueue = ArrayDeque<Result<ClaudeResponse>>()
+
     override suspend fun send(request: ClaudeRequest): Result<ClaudeResponse> {
         requests.add(request)
         callCount++
-        return nextResult
+        return if (resultsQueue.isNotEmpty()) resultsQueue.removeFirst() else nextResult
     }
 
     override suspend fun validateKey(key: String): Result<Unit> = validateResult
@@ -51,6 +54,22 @@ class FakeClaudeClient : ClaudeClient {
                 role = "assistant",
                 content = listOf(
                     ContentBlockDto(type = "tool_use", id = "toolu_test", name = toolName, input = input)
+                ),
+                stopReason = "tool_use",
+                usage = UsageDto(inputTokens = 10, outputTokens = 50),
+            )
+        }
+
+        /** A response containing both a text reply and a tool_use block, as the model may emit in one turn. */
+        fun mixedResponse(text: String, toolName: String, inputJson: String): ClaudeResponse {
+            val input = kotlinx.serialization.json.Json.parseToJsonElement(inputJson)
+            return ClaudeResponse(
+                id = "msg_test",
+                type = "message",
+                role = "assistant",
+                content = listOf(
+                    ContentBlockDto(type = "text", text = text),
+                    ContentBlockDto(type = "tool_use", id = "toolu_test", name = toolName, input = input),
                 ),
                 stopReason = "tool_use",
                 usage = UsageDto(inputTokens = 10, outputTokens = 50),

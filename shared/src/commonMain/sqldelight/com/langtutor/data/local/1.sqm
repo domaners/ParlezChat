@@ -1,0 +1,9 @@
+-- Migration from schema version 1 to 2: add api_error_log table
+CREATE TABLE api_error_log (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    error_type TEXT NOT NULL,
+    message    TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+CREATE INDEX api_error_log_created ON api_error_log (created_at DESC);

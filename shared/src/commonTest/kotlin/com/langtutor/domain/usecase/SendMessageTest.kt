@@ -3,9 +3,12 @@ package com.langtutor.domain.usecase
 import com.langtutor.data.remote.ClaudeError
 import com.langtutor.domain.model.DeliveryStatus
 import com.langtutor.domain.model.LearnerProfile
+import com.langtutor.domain.model.MemoryEntry
 import com.langtutor.domain.model.ProficiencyLevel
 import com.langtutor.domain.model.Role
 import com.langtutor.domain.model.StudyDuration
+import com.langtutor.domain.prompt.PromptBuilder
+import com.langtutor.domain.repository.MemoryRepository
 import com.langtutor.domain.repository.MessageRepository
 import com.langtutor.domain.repository.SettingsRepository
 import com.langtutor.test.FakeClaudeClient
@@ -22,7 +25,8 @@ class SendMessageTest {
     private val fakeClient = FakeClaudeClient()
     private val fakeMessageRepo = FakeMessageRepository()
     private val fakeSettingsRepo = FakeSettingsRepository()
-    private val sendMessage = SendMessage(fakeMessageRepo, fakeClient, fakeSettingsRepo)
+    private val fakeMemoryRepo = FakeMemoryRepository()
+    private val sendMessage = SendMessage(fakeMessageRepo, fakeClient, fakeSettingsRepo, fakeMemoryRepo)
     private val profile = testProfile()
 
     @Test
@@ -70,6 +74,41 @@ class SendMessageTest {
         val requestJson = request.toString()
         assertTrue(!requestJson.contains("sk-ant"), "API key must not appear in request body")
     }
+
+    @Test
+    fun `saves memory notes from a tool_use block alongside the text reply`() = runTest {
+        fakeClient.nextResult = Result.success(
+            FakeClaudeClient.mixedResponse(
+                text = "Suena genial!",
+                toolName = PromptBuilder.MEMORY_TOOL_NAME,
+                inputJson = """{"notes": ["User is planning a trip to Krakow"]}""",
+            )
+        )
+        val result = sendMessage(profile, "I'm planning a trip to Krakow")
+        assertTrue(result.isSuccess)
+        assertEquals("Suena genial!", result.getOrNull()?.content)
+        val saved = fakeMemoryRepo.getByProfile(profile.id)
+        assertEquals(1, saved.size)
+        assertEquals("User is planning a trip to Krakow", saved.first().content)
+    }
+
+    @Test
+    fun `retries without tools when the model only returns a tool_use block`() = runTest {
+        fakeClient.resultsQueue.add(
+            Result.success(
+                FakeClaudeClient.toolResponse(
+                    toolName = PromptBuilder.MEMORY_TOOL_NAME,
+                    inputJson = """{"notes": ["User likes jazz"]}""",
+                )
+            )
+        )
+        fakeClient.resultsQueue.add(Result.success(FakeClaudeClient.textResponse("Que interesante!")))
+        val result = sendMessage(profile, "I love jazz music")
+        assertTrue(result.isSuccess)
+        assertEquals("Que interesante!", result.getOrNull()?.content)
+        assertEquals(2, fakeClient.callCount)
+        assertEquals(1, fakeMemoryRepo.getByProfile(profile.id).size)
+    }
 }
 
 // --- Fakes ---
@@ -115,4 +154,30 @@ private class FakeMessageRepository : MessageRepository {
     }
 
     override suspend fun getById(id: Long) = messages.firstOrNull { it.id == id }
+}
+
+private class FakeMemoryRepository : MemoryRepository {
+    private val entries = mutableListOf<MemoryEntry>()
+    private var nextId = 1L
+
+    override fun observeByProfile(profileId: Long): Flow<List<MemoryEntry>> =
+        flowOf(entries.filter { it.profileId == profileId })
+
+    override suspend fun getByProfile(profileId: Long): List<MemoryEntry> =
+        entries.filter { it.profileId == profileId }
+
+    override suspend fun add(profileId: Long, content: String): MemoryEntry {
+        val entry = MemoryEntry(nextId++, profileId, content, 0L, 0L)
+        entries.add(entry)
+        return entry
+    }
+
+    override suspend fun update(id: Long, content: String) {
+        val idx = entries.indexOfFirst { it.id == id }
+        if (idx >= 0) entries[idx] = entries[idx].copy(content = content)
+    }
+
+    override suspend fun delete(id: Long) {
+        entries.removeAll { it.id == id }
+    }
 }

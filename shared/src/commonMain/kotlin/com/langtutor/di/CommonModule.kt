@@ -3,6 +3,7 @@ package com.langtutor.di
 import com.langtutor.data.local.ErrorLogRepositoryImpl
 import com.langtutor.data.local.ExplanationRepositoryImpl
 import com.langtutor.data.local.LangTutorDatabase
+import com.langtutor.data.local.MemoryRepositoryImpl
 import com.langtutor.data.local.MessageRepositoryImpl
 import com.langtutor.data.local.ProfileRepositoryImpl
 import com.langtutor.data.local.SettingsRepositoryImpl
@@ -12,6 +13,7 @@ import com.langtutor.data.remote.KtorClaudeClient
 import com.langtutor.data.security.ApiKeyStore
 import com.langtutor.domain.repository.ErrorLogRepository
 import com.langtutor.domain.repository.ExplanationRepository
+import com.langtutor.domain.repository.MemoryRepository
 import com.langtutor.domain.repository.MessageRepository
 import com.langtutor.domain.repository.ProfileRepository
 import com.langtutor.domain.repository.SettingsRepository
@@ -40,11 +42,12 @@ val commonModule = module {
     single<VocabRepository> { VocabRepositoryImpl(get()) }
     single<SettingsRepository> { SettingsRepositoryImpl(get()) }
     single<ErrorLogRepository> { ErrorLogRepositoryImpl(get()) }
+    single<MemoryRepository> { MemoryRepositoryImpl(get()) }
 
     // Use cases (factory = new instance each time; they hold no state)
-    factory { StartConversation(get(), get(), get()) }
-    factory { SendMessage(get(), get(), get()) }
+    factory { StartConversation(get(), get(), get(), get()) }
+    factory { SendMessage(get(), get(), get(), get()) }
     factory { ExplainMessage(get(), get(), get()) }
     factory { SaveWord(get(), get(), get()) }
-    factory { GenerateEngagementMessage(get(), get(), get()) }
+    factory { GenerateEngagementMessage(get(), get(), get(), get()) }
 }

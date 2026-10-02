@@ -1,0 +1,10 @@
+-- Migration from schema version 3 to 4: add memory_entry table for conversation memory notes
+CREATE TABLE memory_entry (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id INTEGER NOT NULL REFERENCES learner_profile(id) ON DELETE CASCADE,
+    content    TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX memory_entry_profile_created ON memory_entry (profile_id, created_at);

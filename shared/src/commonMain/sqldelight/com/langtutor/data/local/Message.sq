@@ -1,0 +1,30 @@
+CREATE TABLE message (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    profile_id INTEGER NOT NULL REFERENCES learner_profile(id) ON DELETE CASCADE,
+    role       TEXT NOT NULL CHECK (role IN ('USER', 'ASSISTANT')),
+    content    TEXT NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'SENT' CHECK (status IN ('PENDING', 'SENT', 'FAILED')),
+    created_at INTEGER NOT NULL
+);
+
+CREATE INDEX message_profile_created ON message (profile_id, created_at);
+
+selectByProfile:
+SELECT * FROM message WHERE profile_id = ? ORDER BY created_at ASC;
+
+-- Returns the last :limit SENT messages, newest-first. Caller reverses to get chronological order.
+-- Subquery+re-sort triggers a SQLDelight column-qualification bug; DESC+reverse in Kotlin is safer.
+selectHistoryWindow:
+SELECT * FROM message WHERE profile_id = ? AND status = 'SENT' ORDER BY created_at DESC LIMIT :limit;
+
+selectById:
+SELECT * FROM message WHERE id = ?;
+
+insert:
+INSERT INTO message (profile_id, role, content, status, created_at) VALUES (?, ?, ?, ?, ?);
+
+updateStatus:
+UPDATE message SET status = ? WHERE id = ?;
+
+lastInsertRowId:
+SELECT last_insert_rowid();
