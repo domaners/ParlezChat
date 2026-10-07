@@ -23,6 +23,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -56,7 +60,7 @@ fun ChatScreen(
         drawerContent = {
             ModalDrawerSheet(modifier = Modifier.fillMaxHeight()) {
                 Spacer(Modifier.height(16.dp))
-                Text("LangTutor", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
+                Text("ParlezChat", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
                 HorizontalDivider()
                 NavigationDrawerItem(
                     label = { Text("My dictionary") },
