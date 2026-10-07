@@ -60,7 +60,7 @@ fun ChatScreen(
         drawerContent = {
             ModalDrawerSheet(modifier = Modifier.fillMaxHeight()) {
                 Spacer(Modifier.height(16.dp))
-                Text("LangTutor", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
+                Text("ParlezChat", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
                 HorizontalDivider()
                 NavigationDrawerItem(
                     label = { Text("My dictionary") },
