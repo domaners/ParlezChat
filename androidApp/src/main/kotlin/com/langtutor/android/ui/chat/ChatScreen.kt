@@ -1,5 +1,6 @@
 package com.langtutor.android.ui.chat
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -8,10 +9,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.Icecream
+import androidx.compose.material.icons.filled.LocalBar
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -122,21 +128,24 @@ fun ChatScreen(
                 LaunchedEffect(state.messages.size) {
                     if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.lastIndex)
                 }
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                ) {
-                    items(state.messages, key = { it.id }) { msg ->
-                        MessageBubble(
-                            message = msg,
-                            onLongPress = { if (msg.role == Role.ASSISTANT) viewModel.openExplanation(msg) },
-                            onRetry = { viewModel.retry(msg) },
-                        )
-                    }
-                    if (state.isTyping) {
-                        item { TypingIndicator() }
+                Box(modifier = Modifier.weight(1f)) {
+                    ChatWallpaper(modifier = Modifier.matchParentSize())
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp),
+                    ) {
+                        items(state.messages, key = { it.id }) { msg ->
+                            MessageBubble(
+                                message = msg,
+                                onLongPress = { if (msg.role == Role.ASSISTANT) viewModel.openExplanation(msg) },
+                                onRetry = { viewModel.retry(msg) },
+                            )
+                        }
+                        if (state.isTyping) {
+                            item { TypingIndicator() }
+                        }
                     }
                 }
 
@@ -178,6 +187,45 @@ fun ChatScreen(
                 .wrapContentSize(),
             action = { TextButton(onClick = viewModel::dismissSavedWordToast) { Text("OK") } },
         ) { Text("\"${entry.term}\" saved to your dictionary.") }
+    }
+}
+
+// Material Icons has no literal "palm tree" or "sunglasses" icon, so BeachAccess and WbSunny
+// stand in for them while keeping the travel theme requested in issue #12.
+private val chatWallpaperIcons = listOf(
+    Icons.Filled.Flight,
+    Icons.Filled.BeachAccess,
+    Icons.Filled.LocalBar,
+    Icons.Filled.WbSunny,
+    Icons.Filled.Icecream,
+)
+
+/** A low-contrast, tiled travel-icon pattern behind the message list, similar to WhatsApp's chat wallpaper. */
+@Composable
+private fun ChatWallpaper(modifier: Modifier = Modifier) {
+    val painters = chatWallpaperIcons.map { rememberVectorPainter(image = it) }
+    val tint = ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f))
+    Canvas(modifier = modifier) {
+        val iconSize = Size(22.dp.toPx(), 22.dp.toPx())
+        val spacingX = 56.dp.toPx()
+        val spacingY = 56.dp.toPx()
+        var row = 0
+        var y = -spacingY
+        while (y < size.height + spacingY) {
+            val rowOffset = if (row % 2 == 0) 0f else spacingX / 2f
+            var x = -spacingX + rowOffset
+            var col = 0
+            while (x < size.width + spacingX) {
+                val painter = painters[(row * 7 + col) % painters.size]
+                translate(left = x, top = y) {
+                    with(painter) { draw(size = iconSize, colorFilter = tint) }
+                }
+                x += spacingX
+                col++
+            }
+            y += spacingY
+            row++
+        }
     }
 }
 
